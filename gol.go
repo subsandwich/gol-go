@@ -7,7 +7,7 @@ type GameOfLifeIterator func([100][100]bool) [100][100]bool
 
 type GOL interface {
 	iterate()
-	newGame()
+	reset()
 }
 
 type GameOfLife struct {
@@ -21,11 +21,18 @@ func (g *GameOfLife) iterate() {
 	g.iterations += 1
 }
 
-func (g *GameOfLife) newGame() {
+func (g *GameOfLife) reset() {
 	g.board = [100][100]bool{}
 	g.iterations = 0
-	g.iterator = StandardGameOfLifeIterator
 }
+
+func NewStandardGameOfLife(b [100][100]bool) GameOfLife{
+	return GameOfLife{
+		StandardGameOfLifeIterator,
+		0,
+		b}
+}
+
 
 
 func StandardGameOfLifeIterator(b [100][100]bool) [100][100]bool {
