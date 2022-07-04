@@ -1,76 +1,82 @@
 package main
 
+type CellularAutomatonBoard [][]bool
+
+type CellularAutomatonRule func(CellularAutomatonBoard, int, int) bool
 
 // Iterator function for GOL
-type GameOfLifeIterator func([100][100]bool) [100][100]bool
+type CellularAutomatonIterator func(CellularAutomatonBoard, CellularAutomatonRule) CellularAutomatonBoard
 
-
-type GOL interface {
+type ICellularAutomaton interface {
 	iterate()
 	reset()
 }
 
-type GameOfLife struct {
-	iterator GameOfLifeIterator
+type CellularAutomaton struct {
+	rules      CellularAutomatonRule
+	iterator   CellularAutomatonIterator
 	iterations int
-	board [100][100]bool
+	board      CellularAutomatonBoard
 }
 
-func (g *GameOfLife) iterate() {
-	g.board = g.iterator(g.board)
-	g.iterations += 1
+func (g *CellularAutomaton) iterate() {
+	g.board = g.iterator(g.board, g.rules)
+	g.iterations++
 }
 
-func (g *GameOfLife) reset() {
-	g.board = [100][100]bool{}
+func (g *CellularAutomaton) reset() {
+	g.board = CellularAutomatonBoard{}
 	g.iterations = 0
 }
 
-func NewStandardGameOfLife(b [100][100]bool) GameOfLife{
-	return GameOfLife{
-		StandardGameOfLifeIterator,
+func NewStandardGameOfLife(b CellularAutomatonBoard) CellularAutomaton {
+	return CellularAutomaton{
+		StandardGameOfLifeRules,
+		StandardCellularAutomatonIterator,
 		0,
 		b}
 }
 
-
-
-func StandardGameOfLifeIterator(b [100][100]bool) [100][100]bool {
-	var newGOL [100][100]bool
-	for i := 0; i < 100; i++{
-		for j := 0; j < 100; j++{
-			newGOL[i][j] = StandardGameOfLifeRules(b, i, j)
+func StandardCellularAutomatonIterator(b CellularAutomatonBoard, r CellularAutomatonRule) CellularAutomatonBoard {
+	board := make([][]bool, len(b))
+	for i := 0; i < len(b); i++ {
+		board[i] = make([]bool, len(b[i]))
+		for j := 0; j < len(b[i]); j++ {
+			board[i][j] = r(b, i, j)
 		}
 	}
-	return newGOL
+	return board
 
 }
 
-func StandardGameOfLifeRules(b [100][100]bool, x int, y int) bool {
+func StandardGameOfLifeRules(b CellularAutomatonBoard, x int, y int) bool {
 	neighborCount := 0
 	for i := -1; i < 2; i++ {
 		for j := -1; j < 2; j++ {
-			posX := x+j
-			posY := y+i
+			posX := x + j
+			posY := y + i
 			if posX == x && posY == y {
 				continue
 			}
-			if posX < 0 {
-				posX = 100 + posX
-			} else if posX > 99 {
-				posX = 100 - posX
+
+			if posX > len(b)-1 {
+				posX = len(b) - posX
+			} else if posX < 0 {
+				posX = len(b) + posX
 			}
-			if posY < 0 {
-				posY = 100 + posY
-			} else if posY > 99 {
-				posY = 100 - posY
+
+			if posY > len(b[posX])-1 {
+				posY = len(b[posX]) - posY
+			} else if posY < 0 {
+				posY = len(b[posX]) + posY
 			}
-			if b[posX][posY]{
-				neighborCount += 1
+
+			if b[posX][posY] {
+				neighborCount++
 			}
 		}
 	}
-	if !b[x][y]{
+	if !b[x][y] {
 		return neighborCount == 3
 	}
 	return neighborCount == 2 || neighborCount == 3
