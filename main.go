@@ -2,6 +2,8 @@ package main
 
 import (
 	"time"
+
+	"github.com/gdamore/tcell/v2"
 )
 
 func main() {
@@ -20,21 +22,41 @@ func main() {
 	defer ui.screen.Fini()
 	ticker := time.NewTicker(200 * time.Millisecond)
 	ui.update(game)
-	done := make(chan bool)
 	go func() {
 		for {
+
 			select {
-			case <-done:
-				return
 			case <-ticker.C:
-				game.iterate()
-				ui.update(game)
+				if !ui.paused {
+					game.iterate()
+					ui.update(game)
+				}
+
 			}
 		}
 	}()
 
-	time.Sleep(10000 * time.Millisecond)
-	ticker.Stop()
-	done <- true
+	for {
+		event := ui.screen.PollEvent()
+
+		switch event := event.(type) {
+		case *tcell.EventKey:
+			if event.Key() == tcell.KeyEnter {
+				ui.togglePause()
+			}
+			if event.Key() == tcell.KeyEsc {
+				return
+			}
+
+		case *tcell.EventMouse:
+			x, y := event.Position()
+
+			switch event.Buttons() {
+			case tcell.Button1:
+				ui.flipBit(x, y, game)
+			}
+		}
+
+	}
 
 }

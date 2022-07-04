@@ -12,6 +12,7 @@ type ICellularAutomatonUI interface {
 }
 
 type CellularAutomatonUI struct {
+	name   string
 	screen tcell.Screen
 	style  tcell.Style
 	length int
@@ -23,9 +24,6 @@ type CellularAutomatonUI struct {
 }
 
 func (ui CellularAutomatonUI) update(g CellularAutomaton) {
-	if ui.paused {
-		return
-	}
 	tbr := tcell.StyleDefault.Background(tcell.ColorWhite)
 	for x := 0; x < ui.width; x++ {
 		for y := 0; y < ui.length; y++ {
@@ -44,6 +42,7 @@ func (ui CellularAutomatonUI) update(g CellularAutomaton) {
 
 func (ui *CellularAutomatonUI) togglePause() {
 	ui.paused = !ui.paused
+	ui.drawInfo()
 }
 
 func NewCellularAutomatonUI() CellularAutomatonUI {
@@ -58,9 +57,11 @@ func NewCellularAutomatonUI() CellularAutomatonUI {
 
 	boxStyle := tcell.StyleDefault.Background(tcell.ColorBlack)
 	s.SetStyle(boxStyle)
+	s.EnableMouse()
 
-	newCA := CellularAutomatonUI{s, boxStyle, 20, 20, 1, 1, 1, false}
+	newCA := CellularAutomatonUI{"Conway's Game of Life", s, boxStyle, 20, 20, 1, 1, 1, false}
 	newCA.drawSquare()
+	newCA.drawInfo()
 	s.Show()
 	return newCA
 }
@@ -96,4 +97,50 @@ func (ui CellularAutomatonUI) drawSquare() {
 		}
 	}
 
+}
+
+func (ui CellularAutomatonUI) drawInfo() {
+	infoStyle := tcell.StyleDefault.Background(tcell.ColorBlack).Foreground(tcell.ColorWhite)
+	infoY := ui.y + ui.offset*2 + ui.length + 1
+
+	for i, rVal := range "Current Cellular Automaton: " + ui.name {
+		ui.screen.SetContent(ui.x+i, infoY, rVal, nil, infoStyle)
+	}
+
+	pauseString := "running"
+	if ui.paused {
+		pauseString = "paused"
+	}
+	for i, rVal := range "Game is currently " + pauseString {
+		ui.screen.SetContent(ui.x+i, infoY+1, rVal, nil, infoStyle)
+	}
+	ui.screen.Show()
+}
+
+func (ui CellularAutomatonUI) flipBit(x, y int, g CellularAutomaton) {
+	tbr := tcell.StyleDefault.Background(tcell.ColorWhite)
+
+	addInt := 0
+	if (ui.x+ui.offset)%2 == 0 {
+		addInt = 1
+	}
+	xIndex := (x+addInt)/2 - ui.x - ui.offset
+	yIndex := y - ui.y - ui.offset
+	if xIndex >= ui.width || yIndex >= ui.length || xIndex < 0 || yIndex < 0 {
+		return
+	}
+	g.board[xIndex][yIndex] = !g.board[xIndex][yIndex]
+
+	if x%2 == 0 {
+		x--
+	}
+	if g.board[xIndex][yIndex] {
+		ui.screen.SetContent(x, y, ' ', nil, ui.style)
+		ui.screen.SetContent(x+1, y, ' ', nil, ui.style)
+	} else {
+		ui.screen.SetContent(x, y, ' ', nil, tbr)
+		ui.screen.SetContent(x+1, y, ' ', nil, tbr)
+	}
+
+	ui.screen.Show()
 }
